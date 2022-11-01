@@ -1,6 +1,9 @@
 mod success {
-    #[tokio::test]
-    async fn can_initialize_oracle_node() {
-        let _oracle_node = node::OracleNode::new(10);
-    }
+    use fuels::client::FuelClient;
+    use fuels::prelude::{Bech32ContractId, ContractId, Provider, WalletUnlocked};
+    use fuels::signers::fuel_crypto::SecretKey;
+    use std::env;
+    use std::str::FromStr;
+    use std::time::Duration;
+    use utils::Oracle;
 }
