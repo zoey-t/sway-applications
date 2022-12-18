@@ -281,7 +281,7 @@ pub async fn recover_predicate_as_owner(correct_owner: bool) {
         asset_id: OFFERED_ASSET,
     };
 
-    let script_call_handler: ScriptCallHandler<u64> = ScriptCallHandler::new(
+    let script_call_handler: ScriptCallHandler<()> = ScriptCallHandler::new(
         Opcode::RET(REG_ONE).to_bytes().into_iter().collect(),
         UnresolvedBytes::default(),
         wallet.clone(),
