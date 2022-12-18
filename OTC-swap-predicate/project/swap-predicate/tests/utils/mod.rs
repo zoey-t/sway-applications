@@ -1,10 +1,12 @@
-use fuel_gql_client::client::schema::resource::Resource;
 use fuel_gql_client::fuel_vm::{consts::REG_ONE, prelude::Opcode};
 
-use fuels::contract::script::ScriptBuilder;
+use fuels::contract::script_calls::ScriptCallHandler;
+use fuels::core::abi_encoder::UnresolvedBytes;
 use fuels::prelude::*;
 use fuels::test_helpers::WalletsConfig;
 use fuels::tx::{AssetId, Contract, Input, Output, TxPointer};
+use fuels::types::param_types::ParamType;
+use fuels::types::resource::Resource;
 
 // The fee-paying base asset
 pub const BASE_ASSET: AssetId = AssetId::new([0u8; 32]);
@@ -164,19 +166,27 @@ pub async fn test_predicate_spend_with_parameters(
         asset_id: asked_asset,
     };
 
-    let script = ScriptBuilder::new()
-        .set_inputs(vec![input_predicate, input_from_taker])
-        .set_outputs(vec![
+    let script_call_handler: ScriptCallHandler<()> = ScriptCallHandler::new(
+        Opcode::RET(REG_ONE).to_bytes().into_iter().collect(),
+        UnresolvedBytes::default(),
+        taker_wallet.clone(),
+        provider.clone(),
+        ParamType::default(),
+        LogDecoder::default(),
+    );
+
+    // Sign and execute the transaction
+    let _receipts = script_call_handler
+        .with_inputs(vec![input_predicate, input_from_taker])
+        .with_outputs(vec![
             output_to_receiver,
             output_to_taker,
             output_asked_change,
         ])
-        .set_gas_limit(10_000_000)
-        .set_script(vec![Opcode::RET(REG_ONE)]);
-
-    // Sign and execute the transaction
-    let script = script.build(taker_wallet).await.unwrap();
-    let _receipts = script.call(provider).await.unwrap();
+        .tx_params(TxParameters::new(None, Some(10_000_000), None))
+        .call()
+        .await
+        .unwrap();
 
     let predicate_balance = get_balance(&provider, &predicate_root, OFFERED_ASSET).await;
     let taker_asked_token_balance =
@@ -271,17 +281,23 @@ pub async fn recover_predicate_as_owner(correct_owner: bool) {
         asset_id: OFFERED_ASSET,
     };
 
-    // Build the script. The `build` method appends necessary base asset inputs and outputs for gas
-    let script = ScriptBuilder::new()
-        .set_inputs(vec![input_predicate])
-        .set_outputs(vec![output_offered_change])
-        .set_gas_limit(10_000_000)
-        .set_script(vec![Opcode::RET(REG_ONE)]);
+    let script_call_handler: ScriptCallHandler<u64> = ScriptCallHandler::new(
+        Opcode::RET(REG_ONE).to_bytes().into_iter().collect(),
+        UnresolvedBytes::default(),
+        wallet.clone(),
+        provider.clone(),
+        ParamType::default(),
+        LogDecoder::default(),
+    );
 
     // Sign and execute the transaction
-    let script = script.build(wallet).await.unwrap();
-
-    let _receipts = script.call(provider).await.unwrap();
+    let _receipts = script_call_handler
+        .with_inputs(vec![input_predicate])
+        .with_outputs(vec![output_offered_change])
+        .tx_params(TxParameters::new(None, Some(10_000_000), None))
+        .call()
+        .await
+        .unwrap();
 
     // The predicate root's coin has been spent
     let predicate_balance = get_balance(&provider, &predicate_root, OFFERED_ASSET).await;
