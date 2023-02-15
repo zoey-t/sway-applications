@@ -16,18 +16,13 @@ use std::{
 // TODO : Remove once __gtf getters implemented in std-lib
 const GTF_OUTPUT_COIN_TO = 0x202;
 const GTF_OUTPUT_COIN_ASSET_ID = 0x204;
-
-/// Order / OTC swap Predicate
-fn main() -> bool {
-    // Order conditions: These are set in Forc.toml
-    // The spending transaction must have an output that sends `ask_amount` of `ask_token` to `receiver`
-    // TODO: Conversion to ContractId and Address types will be unnecessary once
-    // https://github.com/FuelLabs/sway/issues/2647 is fixed
-    const ASK_TOKEN = ContractId {
+const ASK_TOKEN = ContractId {
         value: ASK_TOKEN_CONFIG,
     };
     const RECEIVER = Address::from(RECEIVER_CONFIG);
 
+/// Order / OTC swap Predicate
+fn main() -> bool {
     // Check if the transaction contains a single input coin from the receiver, to cancel their own order (in addition to this predicate)
     if input_count() == 2u8 {
         if input_owner(0).unwrap() == RECEIVER
